@@ -36,6 +36,11 @@ class BlockBookClient:
             self.url = self.main_wnd.getExplorerURL('mainnet')
         printDbg(f"Using Explorer URL: {self.url}")
 
+    def updateBaseUrl(self, new_url):
+        # Update the explorer URL
+        self.url = new_url
+        printDbg(f"Explorer URL updated to: {self.url}")
+
     def checkResponse(self, method, param=""):
         url = self.url + "/api/%s" % method
         if param != "":

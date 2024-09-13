@@ -466,24 +466,25 @@ class MainWindow(QWidget):
         self.header.explorerClientsBox.setCurrentIndex(self.parent.cache['selectedExplorer_index'])
         selected_explorer = self.header.explorerClientsBox.currentData()
         if selected_explorer:
-            printDbg("Selected Explorer URL: %s" % selected_explorer["url"])
+            printDbg(f"Selected Explorer URL: {selected_explorer['url']}")
 
     def onChangeSelectedExplorer(self, i):
         # Ensure apiClient is initialized
         if not hasattr(self, 'apiClient') or self.apiClient is None:
             printDbg("Initializing apiClient in onChangeSelectedExplorer")
             self.apiClient = ApiClient(self)
-        
+    
         # Update the selected explorer index and log the new selection
         self.parent.cache['selectedExplorer_index'] = i
         selected_explorer = self.header.explorerClientsBox.itemData(i)
+    
         if selected_explorer:
-            printDbg("Selected Explorer URL: %s" % selected_explorer["url"])
-            # Update the API client URL
-            if hasattr(self.apiClient, 'api'):
-                self.apiClient.api.url = selected_explorer["url"]
-            else:
-                printDbg("Error: self.apiClient.api attribute does not exist.")
+            # Update the apiClient with the new explorer URL
+            explorer_url = selected_explorer.get('url', '')
+            self.apiClient.updateExplorerUrl(explorer_url)
+            printDbg(f"Explorer changed to: {explorer_url}")
+        else:
+            printDbg("No explorer selected")
 
     def getExplorerURL(self, network):
         # Check if explorerServersList is empty
