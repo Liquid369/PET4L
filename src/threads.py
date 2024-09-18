@@ -39,7 +39,7 @@ class ThreadFuns:
 
         def on_thread_finished_int(
             thread_arg: WorkerThread,
-            on_thread_finish_arg: Optional[Callable[[], None]], 
+            on_thread_finish_arg: Optional[Callable[[], None]],
             skip_raise_exception_arg: bool,
             on_thread_exception_arg: Optional[Callable[[Exception], None]]
         ):

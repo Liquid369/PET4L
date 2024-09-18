@@ -61,6 +61,6 @@ def b58decode(v: str, length: int = None) -> bytes:
 
     result = _bchr(0) * nPad + result
     if length is not None and len(result) != length:
-        return None
+        return b''
 
     return result
