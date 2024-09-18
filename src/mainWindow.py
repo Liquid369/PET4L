@@ -13,7 +13,7 @@ import threading
 from PyQt5.QtCore import pyqtSignal, Qt, QThread
 from PyQt5.QtGui import QPixmap, QColor, QPalette, QTextCursor, QFont, QIcon
 from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QGroupBox, QVBoxLayout, \
-    QFileDialog, QTextEdit, QTabWidget, QLabel, QSplitter, QAction, QMenuBar
+    QFileDialog, QTextEdit, QTabWidget, QLabel, QSplitter
 
 from apiClient import ApiClient
 from constants import starting_height, DefaultCache, wqueue

@@ -9,8 +9,8 @@ import os.path
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
-    QWidget, QPushButton, QHBoxLayout, QGroupBox, QVBoxLayout, QLineEdit, QComboBox, 
-    QProgressBar, QLabel, QFormLayout, QDoubleSpinBox, QTableWidget, QTableWidgetItem, 
+    QWidget, QPushButton, QHBoxLayout, QGroupBox, QVBoxLayout, QLineEdit, QComboBox,
+    QProgressBar, QLabel, QFormLayout, QDoubleSpinBox, QTableWidget, QTableWidgetItem,
     QAbstractItemView, QHeaderView, QSpinBox
 )
 

@@ -19,9 +19,9 @@ from typing import Callable, Any, Optional
 class ThreadFuns:
     @staticmethod
     def runInThread(
-        worker_fun: Callable[..., Any], 
-        worker_fun_args: tuple, 
-        on_thread_finish: Optional[Callable[[], None]] = None, 
+        worker_fun: Callable[..., Any],
+        worker_fun_args: tuple,
+        on_thread_finish: Optional[Callable[[], None]] = None,
         on_thread_exception: Optional[Callable[[Exception], None]] = None,
         skip_raise_exception: bool = False
     ) -> threading.Thread:
@@ -38,9 +38,9 @@ class ThreadFuns:
         """
 
         def on_thread_finished_int(
-            thread_arg: WorkerThread, 
+            thread_arg: WorkerThread,
             on_thread_finish_arg: Optional[Callable[[], None]], 
-            skip_raise_exception_arg: bool, 
+            skip_raise_exception_arg: bool,
             on_thread_exception_arg: Optional[Callable[[Exception], None]]
         ):
             if thread_arg.worker_exception:
