@@ -404,7 +404,7 @@ class Database:
                 if isCustom is None:
                     # Default to False if isCustom is not set
                     cursor.execute("UPDATE EXPLORER_SERVERS SET isCustom = ? WHERE id = ?", (False, id))
-            
+
             self.releaseCursor()
             self.app.sig_ExplorerListReloaded.emit()
         except Exception as e:

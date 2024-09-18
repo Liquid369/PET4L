@@ -18,7 +18,7 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QGroupBox, QVBoxL
 from apiClient import ApiClient
 from constants import starting_height, DefaultCache, wqueue
 from hwdevice import HWdevice
-from misc import printDbg, printException, printOK, saveCacheSettings, getCallerName, getFunctionName, \
+from misc import printDbg, printException, printOK, getCallerName, getFunctionName, \
     WriteStreamReceiver, now, persistCacheSetting, myPopUp_sb, getRemotePET4Lversion
 
 from tabRewards import TabRewards
@@ -473,11 +473,10 @@ class MainWindow(QWidget):
         if not hasattr(self, 'apiClient') or self.apiClient is None:
             printDbg("Initializing apiClient in onChangeSelectedExplorer")
             self.apiClient = ApiClient(self)
-    
+
         # Update the selected explorer index and log the new selection
         self.parent.cache['selectedExplorer_index'] = i
         selected_explorer = self.header.explorerClientsBox.itemData(i)
-    
         if selected_explorer:
             # Update the apiClient with the new explorer URL
             explorer_url = selected_explorer.get('url', '')

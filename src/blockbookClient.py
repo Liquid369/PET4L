@@ -5,8 +5,9 @@
 # file LICENSE.txt or http://www.opensource.org/licenses/mit-license.php.
 
 import requests
-
+from PyQt5.QtWidgets import QMessageBox
 from misc import getCallerName, getFunctionName, printException, myPopUp, printDbg
+
 
 def process_blockbook_exceptions(func):
     def process_blockbook_exceptions_int(*args, **kwargs):

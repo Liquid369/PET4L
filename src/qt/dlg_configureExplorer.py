@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import QDialog, QHBoxLayout, QVBoxLayout, QLabel, \
     QListWidget, QFrame, QFormLayout, QComboBox, QLineEdit, QListWidgetItem, \
     QWidget, QPushButton, QMessageBox
 
-from misc import myPopUp, printDbg
+from misc import myPopUp
 
 
 class ConfigureExplorerServers_dlg(QDialog):
