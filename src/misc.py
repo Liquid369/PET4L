@@ -11,7 +11,7 @@ import time
 from contextlib import redirect_stdout
 from ipaddress import ip_address
 from urllib.parse import urlparse
-from typing import Any, Callable, Dict, Optional, Type
+from typing import Any, Callable, Dict, Optional, Type, Tuple
 
 import simplejson as json
 from PyQt5.QtCore import QObject, pyqtSignal, QSettings
@@ -286,7 +286,7 @@ def sec_to_time(seconds: int) -> str:
     return f"{days} days, {hrs} hrs, {mins} mins, {seconds} secs"
 
 
-def timeThis(function: Callable[..., Any], *args: Any) -> tuple[Optional[Any], Optional[float]]:
+def timeThis(function: Callable[..., Any], *args: Any) -> Tuple[Optional[Any], Optional[float]]:
     try:
         start = time.perf_counter()
         val = function(*args)

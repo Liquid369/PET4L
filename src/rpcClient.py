@@ -75,7 +75,7 @@ class RpcClient:
         with self.lock:
             mnStatusList = self.conn.listmasternodes(address)
             if not mnStatusList:
-                return None
+                return {}
             mnStatus = mnStatusList[0]
             mnStatus['mnCount'] = self.conn.getmasternodecount()['enabled']
             return mnStatus
