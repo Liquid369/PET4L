@@ -14,7 +14,7 @@ class HexParser:
         self.cursor = 0
         self.hex_str = hex_str
 
-    def readInt(self, nbytes: int, byteorder: str = "big", signed: bool = False) -> int:
+    def readInt(self, nbytes: int, byteorder: str = 'big', signed: bool = False) -> int:
         if self.cursor + nbytes * 2 > len(self.hex_str):
             raise Exception("HexParser range error")
         b = bytes.fromhex(self.hex_str[self.cursor:self.cursor + nbytes * 2])
