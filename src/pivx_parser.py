@@ -4,6 +4,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE.txt or http://www.opensource.org/licenses/mit-license.php.
 
+from typing import Dict, Tuple
 from misc import getCallerName, getFunctionName, printException
 import utils
 from pivx_hashlib import pubkeyhash_to_address
@@ -43,11 +44,11 @@ class HexParser:
         return res
 
 
-def IsCoinBase(vin: dict) -> bool:
+def IsCoinBase(vin: Dict[str, any]) -> bool:
     return vin["txid"] == "0" * 64 and vin["vout"] == 4294967295 and vin["scriptSig"]["hex"][:2] != "c2"
 
 
-def ParseTxInput(p: HexParser) -> dict:
+def ParseTxInput(p: HexParser) -> Dict[str, any]:
     vin = {
         "txid": p.readString(32, "little"),
         "vout": p.readInt(4, "little"),
@@ -65,7 +66,7 @@ def ParseTxInput(p: HexParser) -> dict:
     return vin
 
 
-def ParseTxOutput(p: HexParser, isTestnet: bool = False) -> dict:
+def ParseTxOutput(p: HexParser, isTestnet: bool = False) -> Dict[str, any]:
     vout = {
         "value": p.readInt(8, "little"),
         "scriptPubKey": {
@@ -85,7 +86,7 @@ def ParseTxOutput(p: HexParser, isTestnet: bool = False) -> dict:
     return vout
 
 
-def ParseTx(hex_string: str, isTestnet: bool = False) -> dict:
+def ParseTx(hex_string: str, isTestnet: bool = False) -> Dict[str, any]:
     p = HexParser(hex_string)
     tx = {
         "version": p.readInt(4, "little"),
@@ -96,13 +97,13 @@ def ParseTx(hex_string: str, isTestnet: bool = False) -> dict:
     return tx
 
 
-def IsPayToColdStaking(rawtx: str, out_n: int) -> tuple[bool, bool]:
+def IsPayToColdStaking(rawtx: str, out_n: int) -> Tuple[bool, bool]:
     tx = ParseTx(rawtx)
     script = tx['vout'][out_n]["scriptPubKey"]["hex"]
     return utils.IsPayToColdStaking(bytes.fromhex(script)), IsCoinStake(tx)
 
 
-def IsCoinStake(json_tx: dict) -> bool:
+def IsCoinStake(json_tx: Dict[str, any]) -> bool:
     return json_tx['vout'][0]["scriptPubKey"]["hex"] == ""
 
 
