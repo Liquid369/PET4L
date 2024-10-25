@@ -9,6 +9,7 @@ from bitcoinrpc.authproxy import AuthServiceProxy
 import http.client as httplib
 import ssl
 import threading
+from typing import Union, Optional
 
 from constants import DEFAULT_PROTOCOL_VERSION, MINIMUM_FEE
 from misc import getCallerName, getFunctionName, printException, printDbg, now, timeThis
@@ -40,7 +41,18 @@ class RpcClient:
 
         self.rpc_url = f"{rpc_protocol}://{rpc_user}:{rpc_password}@{rpc_host}"
 
-        host, port = rpc_host.split(":")
+        if ":" in rpc_host:
+            host, port_str = rpc_host.split(":")
+            try:
+                port = int(port_str)
+            except ValueError:
+                raise ValueError(f"Invalid port specified: {port_str}")
+        else:
+            host = rpc_host
+            port = None
+
+        self.httpConnection: Union[httplib.HTTPConnection, httplib.HTTPSConnection]
+
         if rpc_protocol == "https":
             self.httpConnection = httplib.HTTPSConnection(host, port, timeout=20, context=ssl._create_unverified_context())
         else:
