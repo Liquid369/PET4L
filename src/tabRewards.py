@@ -20,6 +20,10 @@ from threads import ThreadFuns
 from txCache import TxCache
 from utils import checkPivxAddr
 
+AlignCenter: int = Qt.AlignCenter
+ItemIsEnabled: int = Qt.ItemIsEnabled
+ItemIsSelectable: int = Qt.ItemIsSelectable
+
 
 class TabRewards:
     def __init__(self, caller):
