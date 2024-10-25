@@ -4,7 +4,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE.txt or http://www.opensource.org/licenses/mit-license.php.
 
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Literal, Any
 from misc import getCallerName, getFunctionName, printException
 import utils
 from pivx_hashlib import pubkeyhash_to_address
@@ -15,7 +15,7 @@ class HexParser:
         self.cursor = 0
         self.hex_str = hex_str
 
-    def readInt(self, nbytes: int, byteorder: str = 'big', signed: bool = False) -> int:
+    def readInt(self, nbytes: int, byteorder: Literal['little', 'big'] = 'big', signed: bool = False) -> int:
         if self.cursor + nbytes * 2 > len(self.hex_str):
             raise Exception("HexParser range error")
         b = bytes.fromhex(self.hex_str[self.cursor:self.cursor + nbytes * 2])
@@ -44,11 +44,11 @@ class HexParser:
         return res
 
 
-def IsCoinBase(vin: Dict[str, any]) -> bool:
+def IsCoinBase(vin: Dict[str, Any]) -> bool:
     return vin["txid"] == "0" * 64 and vin["vout"] == 4294967295 and vin["scriptSig"]["hex"][:2] != "c2"
 
 
-def ParseTxInput(p: HexParser) -> Dict[str, any]:
+def ParseTxInput(p: HexParser) -> Dict[str, Any]:
     vin = {
         "txid": p.readString(32, "little"),
         "vout": p.readInt(4, "little"),
@@ -66,7 +66,7 @@ def ParseTxInput(p: HexParser) -> Dict[str, any]:
     return vin
 
 
-def ParseTxOutput(p: HexParser, isTestnet: bool = False) -> Dict[str, any]:
+def ParseTxOutput(p: HexParser, isTestnet: bool = False) -> Dict[str, Any]:
     vout = {
         "value": p.readInt(8, "little"),
         "scriptPubKey": {
@@ -86,7 +86,7 @@ def ParseTxOutput(p: HexParser, isTestnet: bool = False) -> Dict[str, any]:
     return vout
 
 
-def ParseTx(hex_string: str, isTestnet: bool = False) -> Dict[str, any]:
+def ParseTx(hex_string: str, isTestnet: bool = False) -> Dict[str, Any]:
     p = HexParser(hex_string)
     tx = {
         "version": p.readInt(4, "little"),
@@ -103,7 +103,7 @@ def IsPayToColdStaking(rawtx: str, out_n: int) -> Tuple[bool, bool]:
     return utils.IsPayToColdStaking(bytes.fromhex(script)), IsCoinStake(tx)
 
 
-def IsCoinStake(json_tx: Dict[str, any]) -> bool:
+def IsCoinStake(json_tx: Dict[str, Any]) -> bool:
     return json_tx['vout'][0]["scriptPubKey"]["hex"] == ""
 
 
