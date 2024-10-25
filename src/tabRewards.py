@@ -75,7 +75,7 @@ class TabRewards:
             def item(value: str) -> QTableWidgetItem:
                 item = QTableWidgetItem(value)
                 item.setTextAlignment(Qt.AlignCenter)
-                item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+                item.setFlags(item.flags() | Qt.ItemIsEnabled | Qt.ItemIsSelectable)
                 return item
 
             # Clear up old list
