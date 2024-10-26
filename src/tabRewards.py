@@ -7,8 +7,7 @@
 import threading
 import simplejson as json
 
-from PyQt5.Qt import QApplication
-from PyQt5.QtCore import Qt
+from PyQt5.Qt import QApplication, Qt
 from PyQt5.QtWidgets import QMessageBox, QTableWidgetItem, QHeaderView
 
 from constants import MINIMUM_FEE

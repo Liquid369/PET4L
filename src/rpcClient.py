@@ -9,7 +9,7 @@ from bitcoinrpc.authproxy import AuthServiceProxy
 import http.client as httplib
 import ssl
 import threading
-from typing import Union, Optional
+from typing import Union
 
 from constants import DEFAULT_PROTOCOL_VERSION, MINIMUM_FEE
 from misc import getCallerName, getFunctionName, printException, printDbg, now, timeThis
