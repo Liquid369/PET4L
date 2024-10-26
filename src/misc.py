@@ -8,16 +8,17 @@ import logging
 import os
 import sys
 import time
+import io
 from contextlib import redirect_stdout
 from ipaddress import ip_address
 from urllib.parse import urlparse
-from typing import Any, Callable, Dict, Optional, Type, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple
 
 import simplejson as json
 from PyQt5.QtCore import QObject, pyqtSignal, QSettings
 from PyQt5.QtWidgets import QMessageBox
 
-from constants import log_File, DefaultCache, wqueue, MAX_INPUTS_NO_WARNING
+from constants import log_File, DefaultCache, MAX_INPUTS_NO_WARNING
 
 
 def add_defaultKeys_to_dict(dictObj: Dict[str, Any], defaultObj: Dict[str, Any]) -> None:
@@ -26,7 +27,7 @@ def add_defaultKeys_to_dict(dictObj: Dict[str, Any], defaultObj: Dict[str, Any])
             dictObj[key] = defaultObj[key]
 
 
-QT_MESSAGE_TYPE: Dict[str, Type[QMessageBox.Icon]] = {
+QT_MESSAGE_TYPE: Dict[str, QMessageBox.Icon] = {
     "info": QMessageBox.Information,
     "warn": QMessageBox.Warning,
     "crit": QMessageBox.Critical,
@@ -158,7 +159,7 @@ def myPopUp(parentWindow: Any, messType: str, messTitle: str, messText: str, def
 def myPopUp_sb(parentWindow: Any, messType: str, messTitle: str, messText: str, singleButton: QMessageBox.StandardButton = QMessageBox.Ok) -> int:
     message_type = QT_MESSAGE_TYPE.get(messType, QMessageBox.Information)
     mess = QMessageBox(message_type, messTitle, messText, singleButton, parent=parentWindow)
-    mess.setStandardButtons(singleButton | singleButton)
+    mess.setStandardButtons(singleButton)
     return mess.exec_()
 
 
@@ -258,8 +259,9 @@ def readCacheSettings() -> Dict[str, Any]:
 
 
 def redirect_print(what: str) -> None:
-    with redirect_stdout(WriteStream(wqueue)):
-        print(what)
+    with io.StringIO() as buffer:
+        with redirect_stdout(buffer):
+            print(what)
 
 
 def saveCacheSettings(cache: Dict[str, Any]) -> None:
@@ -314,6 +316,18 @@ class WriteStream:
 
     def flush(self) -> None:
         pass
+
+
+class WrapperWriteStream:
+    def __init__(self, write_stream: WriteStream):
+        self.write_stream = write_stream
+
+    def write(self, message: str) -> int:
+        self.write_stream.write(message)
+        return len(message)
+
+    def flush(self) -> None:
+        self.write_stream.flush()
 
 
 # QObject (to be run in QThread) that blocks until data is available
