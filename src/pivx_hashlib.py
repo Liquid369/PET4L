@@ -6,6 +6,7 @@
 
 import bitcoin
 import hashlib
+from typing import Optional
 
 from constants import WIF_PREFIX, MAGIC_BYTE, TESTNET_WIF_PREFIX, TESTNET_MAGIC_BYTE, \
     STAKE_MAGIC_BYTE, TESTNET_STAKE_MAGIC_BYTE
@@ -56,7 +57,7 @@ def pubkeyhash_to_address(pkey_hash: bytes, isTestnet: bool = False, isCold: boo
     return b58encode(data + checksum)
 
 
-def wif_to_privkey(string: str) -> str | None:
+def wif_to_privkey(string: str) -> Optional[str]:
     wif_compressed = len(string) == 52
     pvkeyencoded = b58decode(string).hex()
     wifversion = pvkeyencoded[:2]

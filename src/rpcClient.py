@@ -9,7 +9,7 @@ from bitcoinrpc.authproxy import AuthServiceProxy
 import http.client as httplib
 import ssl
 import threading
-from typing import Union
+from typing import Optional, Tuple, Union
 
 from constants import DEFAULT_PROTOCOL_VERSION, MINIMUM_FEE
 from misc import getCallerName, getFunctionName, printException, printDbg, now, timeThis
@@ -41,6 +41,7 @@ class RpcClient:
 
         self.rpc_url = f"{rpc_protocol}://{rpc_user}:{rpc_password}@{rpc_host}"
 
+        port: Optional[int]
         if ":" in rpc_host:
             host, port_str = rpc_host.split(":")
             try:
@@ -168,7 +169,7 @@ class RpcClient:
             return self.conn.getrawtransaction(txid)
 
     @process_RPC_exceptions
-    def getStatus(self) -> tuple[bool, str, int, float, bool]:
+    def getStatus(self) -> Tuple[bool, str, int, float, bool]:
         status = False
         statusMess = "Unable to connect to a PIVX RPC server.\nEither the local PIVX wallet is not open, or the remote RPC server is not responding."
         n = 0
@@ -186,7 +187,7 @@ class RpcClient:
         return status, statusMess, n, response_time, isTestnet
 
     @process_RPC_exceptions
-    def isBlockchainSynced(self) -> tuple[bool, float]:
+    def isBlockchainSynced(self) -> Tuple[bool, float]:
         with self.lock:
             status, response_time = timeThis(self.conn.mnsync, 'status')
             if status is not None:
