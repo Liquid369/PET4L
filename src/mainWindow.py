@@ -528,7 +528,11 @@ class MainWindow(QWidget):
         urls = self.getExplorerURLList(network)
         if saved_url and saved_url in urls:
             return saved_url
-        return urls[0]
+        # Stale/removed selection: prefer the shipped default for this network
+        # over whatever happens to sort first, so a dropped explorer never
+        # silently promotes an unreachable custom entry.
+        default_url = DEFAULT_TESTNET_EXPLORER if network == 'testnet' else DEFAULT_MAINNET_EXPLORER
+        return default_url if default_url in urls else urls[0]
 
     def updateRPCstatus(self, ctrl, fDebug=False):
         rpc_index, rpc_protocol, rpc_host, rpc_user, rpc_password = self.getRPCserver()

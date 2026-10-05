@@ -332,11 +332,16 @@ def sec_to_time(seconds):
 
 def timeThis(function, *args):
     try:
-        start = time.clock()
+        # time.clock() was removed in Python 3.8; perf_counter is the
+        # documented replacement for measuring elapsed wall-clock time.
+        start = time.perf_counter()
         val = function(*args)
-        end = time.clock()
+        end = time.perf_counter()
         return val, (end - start)
-    except Exception:
+    except Exception as e:
+        # Callers treat None as "call failed", but swallowing silently once hid
+        # a working RPC server reporting itself as unreachable. Leave a trace.
+        printException(getCallerName(True), getFunctionName(True), "timeThis failed:", str(e))
         return None, None
 
 

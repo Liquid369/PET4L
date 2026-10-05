@@ -201,7 +201,8 @@ class InitTableExplorerTest(unittest.TestCase):
     def _run(self, setup_rows):
         import sqlite3
         from database import Database
-        from constants import trusted_explorers
+        from constants import trusted_explorers, DEFAULT_MAINNET_EXPLORER
+        self.DEFAULT_MAINNET_EXPLORER = DEFAULT_MAINNET_EXPLORER
         conn = sqlite3.connect(':memory:')
         cur = conn.cursor()
         cur.execute("CREATE TABLE EXPLORER_SERVERS"
@@ -219,8 +220,8 @@ class InitTableExplorerTest(unittest.TestCase):
         result = self._run([])
         for url in self.trusted_urls:
             self.assertIn(url, result)
-        # zkbitcoin is the mainnet fallback
-        self.assertEqual(result['https://zkbitcoin.com/'], (0, 0))
+        # the mainnet default is seeded as a non-custom mainnet row
+        self.assertEqual(result[self.DEFAULT_MAINNET_EXPLORER], (0, 0))
 
     def test_backfills_null_metadata_on_upgrade(self):
         result = self._run([
@@ -229,7 +230,8 @@ class InitTableExplorerTest(unittest.TestCase):
         ])
         # NULL testnet flag must be repaired, not left to read as mainnet
         self.assertEqual(result['https://testnet.duddino.com/'], (1, 0))
-        self.assertIn('https://zkbitcoin.com/', result)
+        # a newly shipped default is added to an already-populated DB
+        self.assertIn(self.DEFAULT_MAINNET_EXPLORER, result)
 
     def test_no_id_collision_with_existing_custom(self):
         result = self._run([
@@ -237,8 +239,8 @@ class InitTableExplorerTest(unittest.TestCase):
             (1, 'https://testnet.duddino.com/', 1, 0),
             (2, 'https://my.custom.explorer/', 0, 1),
         ])
-        # zkbitcoin still inserted despite a custom row already at id 2...
-        self.assertIn('https://zkbitcoin.com/', result)
+        # a new default is still inserted despite a custom row already at id 2...
+        self.assertIn(self.DEFAULT_MAINNET_EXPLORER, result)
         # ...and the user's custom row is left untouched
         self.assertEqual(result['https://my.custom.explorer/'], (0, 1))
 
@@ -285,6 +287,102 @@ class ExplorerUrlListTest(unittest.TestCase):
         # A stale/removed saved URL falls back to the first for that network.
         win.parent.cache['selectedExplorer_mainnet'] = 'https://gone'
         self.assertEqual(win.getExplorerURL('mainnet'), 'https://m1')
+
+
+class ExplorerTableMigrationTest(unittest.TestCase):
+    """Covers the cleanup applied to EXPLORER_SERVERS on startup."""
+
+    def _legacyDB(self):
+        # Reproduce a DB created by the older schema: a leading 'is_custom'
+        # column, duplicate rows and mixed trailing slashes.
+        import sqlite3
+        path = os.path.join(self.tmp, 'application.db')
+        conn = sqlite3.connect(path)
+        conn.execute("CREATE TABLE EXPLORER_SERVERS("
+                     " id INTEGER PRIMARY KEY, url TEXT, is_custom BOOLEAN)")
+        conn.executemany("INSERT INTO EXPLORER_SERVERS (id, url, is_custom) VALUES (?, ?, ?)",
+                         [(1, 'https://testnet.duddino.com', None),
+                          (2, 'https://testnet.duddino.com/', None),
+                          (3, 'https://dead-default.com/', None),
+                          (4, 'https://mine.example', 1)])
+        conn.commit()
+        conn.close()
+        return path
+
+    def setUp(self):
+        import tempfile
+        self.tmp = tempfile.mkdtemp()
+        self.dbfile = self._legacyDB()
+        import constants
+        self._saved = constants.database_File
+        constants.database_File = self.dbfile
+        import database
+        database.database_File = self.dbfile
+        self.database = database
+
+    def tearDown(self):
+        import constants
+        constants.database_File = self._saved
+        import shutil
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def _openDB(self):
+        app = MagicMock()
+        db = self.database.Database(app)
+        db.file_name = self.dbfile
+        db.openDB()
+        return db
+
+    def test_migration_cleans_and_preserves(self):
+        db = self._openDB()
+        rows = db.getExplorerServers()
+        urls = [r['url'] for r in rows]
+
+        # Trailing-slash duplicates collapse into one canonical entry...
+        self.assertEqual(urls.count('https://testnet.duddino.com/'), 1)
+        # ...defaults no longer shipped are pruned...
+        self.assertNotIn('https://dead-default.com/', urls)
+        # ...but a user's custom explorer survives, still flagged custom.
+        mine = [r for r in rows if r['url'] == 'https://mine.example/']
+        self.assertEqual(len(mine), 1)
+        self.assertTrue(mine[0]['isCustom'])
+        db.close()
+
+    def test_flags_not_shifted_by_legacy_column(self):
+        # The legacy 'is_custom' column must not be read as isTestnet:
+        # the testnet default has to come back with isTestnet set.
+        db = self._openDB()
+        row = [r for r in db.getExplorerServers()
+               if r['url'] == 'https://testnet.duddino.com/'][0]
+        self.assertTrue(row['isTestnet'])
+        self.assertEqual([r['url'] for r in db.getExplorerServers(isTestnet=True)],
+                         ['https://testnet.duddino.com/'])
+        db.close()
+
+    def test_duplicate_adds_are_ignored(self):
+        db = self._openDB()
+        before = len(db.getExplorerServers())
+        db.addExplorerServer('https://new.example', False)
+        db.addExplorerServer('https://new.example/', False)   # same URL
+        self.assertEqual(len(db.getExplorerServers()), before + 1)
+        db.close()
+
+
+class TimeThisTest(unittest.TestCase):
+    def test_returns_value_and_elapsed(self):
+        # Regression: this used time.clock(), removed in Python 3.8, so every
+        # call returned (None, None) and a healthy RPC server was reported
+        # as unreachable.
+        from misc import timeThis
+        value, elapsed = timeThis(lambda x: x * 2, 21)
+        self.assertEqual(value, 42)
+        self.assertIsNotNone(elapsed)
+
+    def test_failure_still_returns_none(self):
+        from misc import timeThis
+        def boom():
+            raise RuntimeError("nope")
+        self.assertEqual(timeThis(boom), (None, None))
 
 
 if __name__ == '__main__':

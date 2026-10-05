@@ -31,9 +31,8 @@ user_dir = os.path.join(home_dir, APPDATA_DIRNAME)
 log_File = os.path.join(user_dir, 'debug.log')
 database_File = os.path.join(user_dir, 'application.db')
 
-# Default explorers (url). zkbitcoin acts as a mainnet fallback if the primary
-# explorer fails. Defined here so DefaultCache can reference them.
-DEFAULT_MAINNET_EXPLORER = "https://explorer.duddino.com/"
+# Default explorers (url). Defined here so DefaultCache can reference them.
+DEFAULT_MAINNET_EXPLORER = "https://explorer.pivx.org/"
 DEFAULT_TESTNET_EXPLORER = "https://testnet.duddino.com/"
 
 DefaultCache = {
@@ -62,10 +61,12 @@ trusted_RPC_Servers = [
     ["https", "charlotte.fuzzbawls.pw:8080", "spmtUser", "ZyD936tm9dvqmMP8A777"]]
 
 # Default explorer rows (url, isTestnet, isCustom).
+# Plain-HTTP-reachable Blockbook instances only: explorer.duddino.com and
+# zkbitcoin.com answer every API request with a Cloudflare 403. Defaults
+# dropped here are pruned from the DB on startup; custom entries are kept.
 trusted_explorers = [
     [DEFAULT_MAINNET_EXPLORER, False, False],
-    [DEFAULT_TESTNET_EXPLORER, True, False],
-    ["https://zkbitcoin.com/", False, False]
+    [DEFAULT_TESTNET_EXPLORER, True, False]
 ]
 
 HW_devices = [

@@ -59,8 +59,11 @@ class BlockBookClient:
         printDbg(f"Explorer URL updated to: {self.url}")
 
     def checkResponse(self, method, param=""):
+        # Blockbook's v2 API. The legacy v1 path ('/api/<method>') is not served
+        # by every instance: explorer.pivx.org answers it with the web UI's
+        # HTML, which only surfaces later as a JSON decode error.
         # rstrip avoids a double slash when the URL already ends with '/'
-        url = self.url.rstrip('/') + "/api/%s" % method
+        url = self.url.rstrip('/') + "/api/v2/%s" % method
         if param != "":
             url += "/%s" % param
         resp = requests.get(url, data={}, verify=True)
@@ -74,8 +77,12 @@ class BlockBookClient:
         utxos = self.checkResponse("utxo", address)
         for u in utxos:
             u["script"] = ""
+            # v2 reports the amount as 'value' (satoshis, as a string). The rest of
+            # the app, including the UTXOS table, expects 'satoshis'.
+            u["satoshis"] = int(u.get("satoshis", u.get("value", 0)))
         return utxos
 
     @process_blockbook_exceptions
     def getBalance(self, address):
-        return self.checkResponse("address", address)["balance"]
+        # v2 returns the balance in satoshis (as a string); callers display PIV.
+        return int(self.checkResponse("address", address)["balance"]) / 1e8

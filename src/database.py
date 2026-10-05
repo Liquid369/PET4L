@@ -6,6 +6,12 @@ from constants import database_File, trusted_RPC_Servers, trusted_explorers
 from misc import printDbg, getCallerName, getFunctionName, printException
 
 
+def normalizeExplorerUrl(url):
+    # Single canonical form ('https://host/') so the UNIQUE index below cannot
+    # be defeated by a missing/extra trailing slash.
+    return (url or "").strip().rstrip('/') + '/'
+
+
 class Database:
     def __init__(self, app):
         printDbg("DB: Initializing...")
@@ -137,6 +143,7 @@ class Database:
                     raise
 
             self.initTable_RPC(cursor)
+            self.migrateTable_Explorer(cursor)
             self.initTable_Explorer(cursor)
 
             # Tables for Utxos
@@ -153,6 +160,53 @@ class Database:
         except Exception as e:
             err_msg = 'error initializing tables'
             printException(getCallerName(), getFunctionName(), err_msg, e.args)
+
+    def migrateTable_Explorer(self, cursor):
+        # Cleans up EXPLORER_SERVERS before the defaults are (re)inserted.
+        # Runs every startup; each step is idempotent.
+        columns = [c[1] for c in cursor.execute("PRAGMA table_info(EXPLORER_SERVERS)")]
+
+        # A pre-existing DB may carry an older 'is_custom' column. CREATE TABLE
+        # IF NOT EXISTS left that schema alone, so the ALTERs appended
+        # isTestnet/isCustom as extra columns and the user's custom flag stayed
+        # behind in 'is_custom'. Carry it over before anything prunes on it.
+        if 'is_custom' in columns and 'isCustom' in columns:
+            cursor.execute("UPDATE EXPLORER_SERVERS SET isCustom = is_custom"
+                           " WHERE isCustom IS NULL AND is_custom IS NOT NULL")
+
+        # Normalise to a single trailing slash so that 'host.com' and
+        # 'host.com/' stop being two distinct dropdown entries.
+        cursor.execute("UPDATE EXPLORER_SERVERS SET url = rtrim(url, '/') || '/'"
+                       " WHERE url IS NOT NULL AND url <> rtrim(url, '/') || '/'")
+
+        # Merge the flags across rows that are about to collapse into one, so
+        # the surviving row cannot lose a user's custom marker (or a known
+        # isTestnet value) just because a duplicate held a lower id.
+        cursor.execute("UPDATE EXPLORER_SERVERS SET isCustom = 1 WHERE url IN"
+                       " (SELECT url FROM EXPLORER_SERVERS WHERE COALESCE(isCustom, 0) <> 0)")
+        cursor.execute("UPDATE EXPLORER_SERVERS SET isTestnet ="
+                       " (SELECT MAX(e.isTestnet) FROM EXPLORER_SERVERS e"
+                       "  WHERE e.url = EXPLORER_SERVERS.url AND e.isTestnet IS NOT NULL)"
+                       " WHERE isTestnet IS NULL")
+
+        # Collapse duplicates (keep the lowest id). addExplorerServer used
+        # INSERT OR IGNORE without a UNIQUE constraint, so every add appended a
+        # new row instead of being ignored.
+        cursor.execute("DELETE FROM EXPLORER_SERVERS WHERE id NOT IN"
+                       " (SELECT MIN(id) FROM EXPLORER_SERVERS GROUP BY url)")
+
+        # Drop non-custom defaults that are no longer shipped (unreachable
+        # explorers). NULL isCustom means "not user-added" once the backfill
+        # above has run, so it is pruned too.
+        keep = [url for url, _, _ in trusted_explorers]
+        cursor.execute("DELETE FROM EXPLORER_SERVERS"
+                       " WHERE COALESCE(isCustom, 0) = 0"
+                       " AND url NOT IN (%s)" % ','.join('?' * len(keep)), keep)
+
+        # The constraint addExplorerServer's INSERT OR IGNORE needs to skip
+        # an existing url.
+        cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_explorer_url"
+                       " ON EXPLORER_SERVERS(url)")
 
     def initTable_Explorer(self, cursor):
         # Ensure each default explorer exists with correct network metadata.
@@ -338,7 +392,7 @@ class Database:
         try:
             cursor = self.getCursor()
             cursor.execute("INSERT OR IGNORE INTO EXPLORER_SERVERS (url, isTestnet, isCustom) VALUES (?, ?, ?)",
-                        (url, isTestnet, True))
+                        (normalizeExplorerUrl(url), isTestnet, True))
             printDbg("DB: Explorer server added or already exists")
 
         except Exception as e:
@@ -353,7 +407,7 @@ class Database:
         try:
             cursor = self.getCursor()
             cursor.execute("UPDATE EXPLORER_SERVERS SET url = ?, isTestnet = ? WHERE id = ?",
-                        (url, isTestnet, id))
+                        (normalizeExplorerUrl(url), isTestnet, id))
 
         except Exception as e:
             err_msg = 'error editing Explorer server entry to DB'
@@ -367,10 +421,15 @@ class Database:
         printDbg("DB: Getting Explorer servers from table %s" % tableName)
         try:
             cursor = self.getCursor()
+            # Select columns by name, never 'SELECT *': databases upgraded from
+            # the older schema still carry a legacy 'is_custom' column, and
+            # positional unpacking read it as isTestnet (shifting every flag).
+            cols = "id, url, isTestnet, isCustom"
             if isTestnet is None:
-                cursor.execute("SELECT * FROM %s" % tableName)
+                cursor.execute("SELECT %s FROM %s ORDER BY id" % (cols, tableName))
             else:
-                cursor.execute("SELECT * FROM %s WHERE isTestnet = ?" % tableName, (isTestnet,))
+                cursor.execute("SELECT %s FROM %s WHERE isTestnet = ? ORDER BY id" % (cols, tableName),
+                               (isTestnet,))
             rows = cursor.fetchall()
 
         except Exception as e:
