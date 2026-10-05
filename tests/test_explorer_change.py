@@ -201,8 +201,9 @@ class InitTableExplorerTest(unittest.TestCase):
     def _run(self, setup_rows):
         import sqlite3
         from database import Database
-        from constants import trusted_explorers, DEFAULT_MAINNET_EXPLORER
+        from constants import trusted_explorers, DEFAULT_MAINNET_EXPLORER, DEFAULT_TESTNET_EXPLORER
         self.DEFAULT_MAINNET_EXPLORER = DEFAULT_MAINNET_EXPLORER
+        self.DEFAULT_TESTNET_EXPLORER = DEFAULT_TESTNET_EXPLORER
         conn = sqlite3.connect(':memory:')
         cur = conn.cursor()
         cur.execute("CREATE TABLE EXPLORER_SERVERS"
@@ -224,12 +225,13 @@ class InitTableExplorerTest(unittest.TestCase):
         self.assertEqual(result[self.DEFAULT_MAINNET_EXPLORER], (0, 0))
 
     def test_backfills_null_metadata_on_upgrade(self):
+        from constants import DEFAULT_TESTNET_EXPLORER
         result = self._run([
             (0, 'https://explorer.duddino.com/', None, None),
-            (1, 'https://testnet.duddino.com/', None, None),
+            (1, DEFAULT_TESTNET_EXPLORER, None, None),
         ])
         # NULL testnet flag must be repaired, not left to read as mainnet
-        self.assertEqual(result['https://testnet.duddino.com/'], (1, 0))
+        self.assertEqual(result[DEFAULT_TESTNET_EXPLORER], (1, 0))
         # a newly shipped default is added to an already-populated DB
         self.assertIn(self.DEFAULT_MAINNET_EXPLORER, result)
 
@@ -296,13 +298,14 @@ class ExplorerTableMigrationTest(unittest.TestCase):
         # Reproduce a DB created by the older schema: a leading 'is_custom'
         # column, duplicate rows and mixed trailing slashes.
         import sqlite3
+        from constants import DEFAULT_TESTNET_EXPLORER
         path = os.path.join(self.tmp, 'application.db')
         conn = sqlite3.connect(path)
         conn.execute("CREATE TABLE EXPLORER_SERVERS("
                      " id INTEGER PRIMARY KEY, url TEXT, is_custom BOOLEAN)")
         conn.executemany("INSERT INTO EXPLORER_SERVERS (id, url, is_custom) VALUES (?, ?, ?)",
-                         [(1, 'https://testnet.duddino.com', None),
-                          (2, 'https://testnet.duddino.com/', None),
+                         [(1, DEFAULT_TESTNET_EXPLORER.rstrip('/'), None),
+                          (2, DEFAULT_TESTNET_EXPLORER, None),
                           (3, 'https://dead-default.com/', None),
                           (4, 'https://mine.example', 1)])
         conn.commit()
@@ -339,7 +342,8 @@ class ExplorerTableMigrationTest(unittest.TestCase):
         urls = [r['url'] for r in rows]
 
         # Trailing-slash duplicates collapse into one canonical entry...
-        self.assertEqual(urls.count('https://testnet.duddino.com/'), 1)
+        from constants import DEFAULT_TESTNET_EXPLORER
+        self.assertEqual(urls.count(DEFAULT_TESTNET_EXPLORER), 1)
         # ...defaults no longer shipped are pruned...
         self.assertNotIn('https://dead-default.com/', urls)
         # ...but a user's custom explorer survives, still flagged custom.
@@ -351,12 +355,13 @@ class ExplorerTableMigrationTest(unittest.TestCase):
     def test_flags_not_shifted_by_legacy_column(self):
         # The legacy 'is_custom' column must not be read as isTestnet:
         # the testnet default has to come back with isTestnet set.
+        from constants import DEFAULT_TESTNET_EXPLORER
         db = self._openDB()
         row = [r for r in db.getExplorerServers()
-               if r['url'] == 'https://testnet.duddino.com/'][0]
+               if r['url'] == DEFAULT_TESTNET_EXPLORER][0]
         self.assertTrue(row['isTestnet'])
         self.assertEqual([r['url'] for r in db.getExplorerServers(isTestnet=True)],
-                         ['https://testnet.duddino.com/'])
+                         [DEFAULT_TESTNET_EXPLORER])
         db.close()
 
     def test_duplicate_adds_are_ignored(self):

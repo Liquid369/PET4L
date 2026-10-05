@@ -33,7 +33,10 @@ database_File = os.path.join(user_dir, 'application.db')
 
 # Default explorers (url). Defined here so DefaultCache can reference them.
 DEFAULT_MAINNET_EXPLORER = "https://explorer.pivx.org/"
-DEFAULT_TESTNET_EXPLORER = "https://testnet.duddino.com/"
+# testnet.duddino.com fails the TLS handshake (SSLError under requests/OpenSSL
+# 3.6.3), so it is as unreachable as the dropped mainnet hosts. This is the
+# testnet6 rusty-blox instance.
+DEFAULT_TESTNET_EXPLORER = "https://testnet-explorer.liquid369.wtf/"
 
 DefaultCache = {
     "lastAddress": "",
