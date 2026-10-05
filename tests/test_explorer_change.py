@@ -385,6 +385,7 @@ class TimeThisTest(unittest.TestCase):
 
     def test_failure_still_returns_none(self):
         from misc import timeThis
+
         def boom():
             raise RuntimeError("nope")
         self.assertEqual(timeThis(boom), (None, None))
